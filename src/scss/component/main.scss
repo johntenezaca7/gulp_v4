@@ -1,0 +1,7 @@
+$block: "main";
+
+.#{$block} {
+  &__title {
+    color: blue;
+  }
+}
