@@ -1,6 +1,6 @@
 class Car {
   constructor() {
-    console.log('I am a car! Sike')
+    console.log('again!')
   }
 }
 

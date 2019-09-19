@@ -1,22 +1,19 @@
 // Init Modules
 const { series, parallel, src, dest, watch } = require("gulp");
-const sourcemaps = require("gulp-sourcemaps");
-const autoprefixer = require("autoprefixer");
-const postcss = require("gulp-postcss");
 const replace = require("gulp-replace");
 const concat = require("gulp-concat");
 const uglify = require("gulp-uglify");
-const cssnano = require("cssnano");
-const concatCSS = require("gulp-concat-css");
 const sass = require("gulp-sass");
 const webpackStream = require("webpack-stream");
 const webpackConfig = require("./webpack.config");
+var browserSync = require('browser-sync').create();
 
 // File Path Variables
 const files = {
   source: {
     scssPath: "./src/scss/styles.scss",
-    tsPath: "./src/js/**/*.ts",
+    jsPath: "./src/js/**/*.js",
+    tsPath: "./src/ts/**/*.(ts + tsx)",
     htmlPath: "./public/index.html"
   },
   public: {
@@ -26,8 +23,19 @@ const files = {
   },
   watch: {
     scss: "./src/scss/**/*.scss",
-    ts: "./src/js/**/*.ts"
+    ts: "./src/ts/**/*.tsx"
   }
+}
+
+// BrowserSync Dev Server
+
+function browsersync() {
+  browserSync.init({
+    injectChanges: true,
+    server: {
+      baseDir: "public"
+    }
+  });
 }
 
 // Sass Task
@@ -39,36 +47,43 @@ function scssTask() {
 
 // JS Task
 function jsTask() {
-  return src( files.source.tsPath )
+  return src( files.source.jsPath )
     .pipe( concat("main.js") )
     .pipe( uglify() )
     .pipe( dest( files.public.jsPath ));
 }
 
+// TS Task 
 function tsTask() {
   return src( files.source.tsPath)
     .pipe( webpackStream( webpackConfig ))
     .pipe( uglify() )
-    .pipe( dest( files.public.jsPath ))
+    .pipe( dest( files.public.jsPath ));
 }
+
 // Cachebusting Task
 const cbString = new Date().getTime();
-const cbRegex = /cb=\d+/g;
 
 function cacheBustTask() {
   return src( files.source.htmlPath )
-    .pipe( replace( cbRegex, "cb=" + cbString ))
+    .pipe( replace( /cb=\d+/g, "cb=" + cbString ))
     .pipe( dest( files.public.htmlPath ));
 }
 
 // Watch Task
 function watchTask() {
+  // Init browser-sync
+  browsersync();
+
+  // Watch files
   watch( [ files.watch.scss, files.watch.ts ] ,
-    parallel( scssTask, tsTask ));
+    parallel( scssTask, tsTask )).on('change', browserSync.reload);
 }
 
 // Default Task
+// You can compile JS or TS 
 exports.default = series(
   parallel( scssTask, tsTask ),
+  cacheBustTask,
   watchTask
 );
